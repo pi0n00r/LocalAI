@@ -48,6 +48,45 @@ const (
 // addon for as long as it is enabled. An absent mode means the same.
 const LaunchModeAlways = "always"
 
+// ExecutionWSL2 is the value of osSettings.windows.execution for a package that
+// is installed on a Windows host and whose executable, a linux/amd64 program,
+// runs in a WSL 2 distribution (feature level 10). The owner starts it through
+// wsl.exe and talks to it over its standard streams (see ChannelEnv).
+const ExecutionWSL2 = "wsl2"
+
+// OSSettings holds the runtime settings that apply on one OS only. Each
+// key is an OS; the block of an OS other than the os of the manifest is
+// refused, so a setting never applies by accident on another OS. A host that
+// does not know the block refuses the manifest as it refuses any unknown field.
+type OSSettings struct {
+	Windows *WindowsSettings `json:"windows,omitempty"`
+}
+
+// WindowsSettings are the settings of a windows package.
+type WindowsSettings struct {
+	// Execution is the execution environment of the executable. The only
+	// value is ExecutionWSL2, and only for a windows/amd64 package.
+	Execution string `json:"execution"`
+}
+
+// validate refuses a block that sets nothing, the block of an OS other than
+// goos, and any value but wsl2 on windows/amd64.
+func (p *OSSettings) validate(goos, arch string) error {
+	if p == nil {
+		return nil
+	}
+	if p.Windows == nil {
+		return fmt.Errorf("osSettings sets no OS block")
+	}
+	if goos != "windows" {
+		return fmt.Errorf("osSettings.windows applies only to a windows package")
+	}
+	if p.Windows.Execution != ExecutionWSL2 || arch != "amd64" {
+		return fmt.Errorf("unsupported osSettings.windows.execution %q: only %q on windows/amd64", p.Windows.Execution, ExecutionWSL2)
+	}
+	return nil
+}
+
 // IconTypes maps the extensions an icon may have to their media type.
 var IconTypes = map[string]string{".png": "image/png", ".webp": "image/webp", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
 
@@ -63,6 +102,16 @@ func (r VersionRange) accepts(v uint64) bool {
 // HostAPIVersion is the manifest API version of this host. It is the only
 // one: a manifest declares the range {"min": 2, "max": 2}.
 const HostAPIVersion uint64 = 2
+
+// HostVersion, HostProtocolVersion and HostDataFormatVersion are the other
+// version numbers a host reports in HostCompatibility. The host protocol
+// is the process protocol of pkg/addons/sdk/protocol. The data format is the
+// layout of the files an add-on keeps in its data directory.
+const (
+	HostVersion           uint64 = 1
+	HostProtocolVersion   uint64 = 1
+	HostDataFormatVersion uint64 = 1
+)
 
 // isHostAPI reports whether the range is exactly the manifest API of the host.
 func (r VersionRange) isHostAPI() bool {
@@ -83,7 +132,10 @@ func (r VersionRange) isHostAPI() bool {
 // Level 6: capabilities.executionProvider.jobs.
 // Level 7: capabilities.client (routes that a paired client may call).
 // Level 8: a wildcard tail ({name...}) as the last segment of a client route.
-const HostFeatureLevel uint64 = 8
+// Level 9: capabilities.modelSearch (a source of the model-search slot).
+// Level 10: osSettings (OS-specific runtime settings; osSettings.windows.execution
+// "wsl2" runs a Linux executable in WSL 2 on Windows).
+const HostFeatureLevel uint64 = 10
 
 // BaseFeatureLevel is the level of a manifest that sets no featureLevel.
 const BaseFeatureLevel uint64 = 1
@@ -106,6 +158,11 @@ func (h HostCompatibility) EffectiveFeatureLevel() uint64 {
 	return h.FeatureLevel
 }
 
+// RunsInWSL reports whether the executable of the package runs in WSL 2.
+func (m Manifest) RunsInWSL() bool {
+	return m.OSSettings != nil && m.OSSettings.Windows != nil && m.OSSettings.Windows.Execution == ExecutionWSL2
+}
+
 // RequiredFeatureLevel is the level the manifest declares, 1 when it sets none.
 func (m Manifest) RequiredFeatureLevel() uint64 {
 	if m.FeatureLevel == 0 {
@@ -117,6 +174,12 @@ func (m Manifest) RequiredFeatureLevel() uint64 {
 // usedFeatureLevel is the lowest level that holds every optional field the
 // manifest uses.
 func (m Manifest) usedFeatureLevel() uint64 {
+	if m.OSSettings != nil {
+		return 10
+	}
+	if m.Capabilities.ModelSearch != nil {
+		return 9
+	}
 	if m.usesClientTail() {
 		return 8
 	}
@@ -182,16 +245,22 @@ type HostCompatibility struct {
 	Arch         string `json:"arch"`
 }
 type Manifest struct {
-	SchemaVersion int          `json:"schemaVersion"`
-	ID            string       `json:"id"`
-	Version       string       `json:"version"`
-	Executable    string       `json:"executable"`
-	OS            string       `json:"os"`
-	Arch          string       `json:"arch"`
-	Host          VersionRange `json:"host"`
-	API           VersionRange `json:"api"`
-	Protocol      VersionRange `json:"protocol"`
-	DataFormat    VersionRange `json:"dataFormat"`
+	SchemaVersion int    `json:"schemaVersion"`
+	ID            string `json:"id"`
+	Version       string `json:"version"`
+	Executable    string `json:"executable"`
+	OS            string `json:"os"`
+	Arch          string `json:"arch"`
+	// OSSettings is absent for an executable that runs natively on OS and Arch
+	// with no OS-specific setting (feature level 10). With
+	// osSettings.windows.execution "wsl2", OS and Arch are those of the Windows
+	// host the package installs on, and the executable is a linux/amd64
+	// program that runs in WSL 2.
+	OSSettings *OSSettings  `json:"osSettings,omitempty"`
+	Host       VersionRange `json:"host"`
+	API        VersionRange `json:"api"`
+	Protocol   VersionRange `json:"protocol"`
+	DataFormat VersionRange `json:"dataFormat"`
 	// FeatureLevel is the feature level the manifest needs from the host. It is
 	// optional and defaults to 1. A manifest that uses a field of a higher
 	// level must say so; a host with a lower level refuses it with a plain
@@ -267,6 +336,9 @@ type Capabilities struct {
 	// providerslots.go). The person picks one provider per slot; the add-on's
 	// context files and skills count only while it is the one picked.
 	Provides []ProviderDeclaration `json:"provides,omitempty"`
+	// ModelSearch describes the source of an add-on that provides the
+	// model-search slot (see modelsearch.go). Feature level 9.
+	ModelSearch *ModelSearch `json:"modelSearch,omitempty"`
 
 	// Credentials declare the secret that the host keeps for the person and
 	// hands to each call (see credentials.go). It needs a connector
@@ -527,6 +599,9 @@ func ValidateManifest(m Manifest, h HostCompatibility) error {
 	if !namespace.MatchString(m.OS) || !namespace.MatchString(m.Arch) || m.OS != h.OS || m.Arch != h.Arch {
 		return fmt.Errorf("incompatible platform")
 	}
+	if err := m.OSSettings.validate(m.OS, m.Arch); err != nil {
+		return err
+	}
 	if !m.API.isHostAPI() {
 		return fmt.Errorf("the manifest must declare api {\"min\": %d, \"max\": %d}", HostAPIVersion, HostAPIVersion)
 	}
@@ -574,6 +649,9 @@ func ValidateManifest(m Manifest, h HostCompatibility) error {
 		return e
 	}
 	if e := validateProvides(c); e != nil {
+		return e
+	}
+	if e := validateModelSearch(m); e != nil {
 		return e
 	}
 	if e := validateResourceTools(c); e != nil {

@@ -58,7 +58,7 @@
           "-p",
           "2",
           "-tags",
-          "auth",
+          "auth,nosqlite,purego_utp",
           "<temporary SQLite probe>",
           "-ginkgo.json-report=<unique report>"
         ],
@@ -106,7 +106,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./pkg/addons/contract",
         "-ginkgo.json-report=../../../.cache/addons/logs/contracts.json"
       ],
@@ -117,7 +117,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./pkg/addons/packaging",
         "-ginkgo.json-report=../../../.cache/addons/logs/contracts-packaging.json"
       ],
@@ -128,7 +128,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         ".",
         "-ginkgo.json-report=.cache/addons/logs/contracts-architecture.json"
       ]
@@ -503,6 +503,8 @@
           "refuses too many roles or permissions, a bad role ID and a repeated role",
           "describes every capability, and never makes a sensitive one usual",
           "never grants a sensitive capability to a role",
+          "never grants a loop capability to a role, even one the kind lists",
+          "marks the loop capabilities binding-only, keeps waits usual and timers sensitive",
           "keeps only declared, distinct roles of a message",
           "needs a connector kind to hold the binding",
           "is refused with a bad kind, a repeated or extra slot or a bad argument name",
@@ -801,7 +803,66 @@
           "a refusal with data",
           "a long refusal",
           "output on input",
-          "written too much"
+          "written too much",
+          "backslash",
+          "empty segment",
+          "trailing slash",
+          "space",
+          "tells a wrong method from an unknown path",
+          "percent escape",
+          "nul byte",
+          "non ascii",
+          "dot segment",
+          "dot dot",
+          "dot dot in the middle",
+          "dot at the end",
+          "dot dot at the end",
+          "encoded dot",
+          "a segment over 128 bytes",
+          "more segments than the tail limit",
+          "a path over the tail limit",
+          "is a set slot with Hugging Face as its built-in source",
+          "accepts a source with every filter type",
+          "needs feature level 9 and a host that has it",
+          "unknown filter type",
+          "too many filters",
+          "too many enum values",
+          "duplicate filter id",
+          "enum default outside its values",
+          "range with no span",
+          "filter id that no tool argument may use",
+          "filter id of a reserved argument",
+          "markup in a label",
+          "source id of the built-in provider",
+          "unknown sort",
+          "search tool not declared",
+          "search tool defined but absent from capabilities.tools",
+          "repeated sort",
+          "a filter value label with markup",
+          "search role missing",
+          "modelSearch without the slot",
+          "slot without modelSearch",
+          "translation of an unknown filter",
+          "takes the source properties hasVariants and p2p, which the host sends to the panel",
+          "takes translations of the title and the filters",
+          "refuses mode set on a slot that is pick-one by its descriptor",
+          "omits proposer and project_node for an own proposal and round-trips them for a shared one",
+          "an empty value",
+          "is absent for a native package, and a native manifest is unchanged",
+          "reads osSettings.windows.execution wsl2 for a windows/amd64 package at feature level 10",
+          "requires the manifest to declare feature level 10",
+          "is refused by a host of an older level",
+          "is refused by the strict reader of an older host, which knows no osSettings key",
+          "refuses the block on a package for any other platform",
+          "an unknown OS key",
+          "an unknown OS key beside windows",
+          "an unknown field",
+          "an unknown value",
+          "an empty windows block",
+          "an empty block",
+          "a null windows block",
+          "refuses the former top-level execution field",
+          "refuses the block under the key platform"
         ]
       },
       {
@@ -992,6 +1053,7 @@
           "has consistent package files for jellyfin",
           "has consistent package files for mail",
           "has consistent package files for pikvm",
+          "has consistent package files for pirateface-search",
           "has consistent package files for ssh",
           "writes the zip of a verified layout with a digest manifest and a sha256 file",
           "audits actual host calls and strict package contract for github",
@@ -1001,6 +1063,7 @@
           "audits actual host calls and strict package contract for jellyfin",
           "audits actual host calls and strict package contract for mail",
           "audits actual host calls and strict package contract for pikvm",
+          "audits actual host calls and strict package contract for pirateface-search",
           "audits actual host calls and strict package contract for ssh",
           "lists every release platform with its runner",
           "enables a platform exactly when its native check is recorded",
@@ -1062,7 +1125,15 @@
           "translates the title and the description of gdrive in every main language",
           "translates the title and the description of gmail in every main language",
           "gives every translated connector kind of gdrive the fields of its English kind, and no others",
-          "gives every translated connector kind of gmail the fields of its English kind, and no others"
+          "gives every translated connector kind of gmail the fields of its English kind, and no others",
+          "names the executable of a Windows package with .exe",
+          "is built for linux/amd64 and keeps the plain executable name",
+          "makes a Windows package that carries the Linux executable and says osSettings.windows.execution wsl2 at feature level 10",
+          "refuses an executable that is not a Linux program",
+          "refuses a package whose manifest disagrees with the row",
+          "takes the osSettings block only from the row, never from the manifest template",
+          "is refused on any other platform, and any other value",
+          "refuses a runtime file named as the executable of a Windows package"
         ]
       },
       {
@@ -1088,7 +1159,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/services/addons/catalog",
         "-ginkgo.json-report=../../../../.cache/addons/logs/catalog.json"
       ]
@@ -1203,7 +1274,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/services/addons/packages",
         "-ginkgo.json-report=../../../../.cache/addons/logs/packages.json"
       ]
@@ -1285,7 +1356,10 @@
       "refuses more files than the limit",
       "refuses a path that is a file in one entry and a directory in another",
       "does not read a path through a symbolic link planted in the staging area",
-      "refuses a package that needs a newer feature level, from the entry and from the manifest"
+      "refuses a package that needs a newer feature level, from the entry and from the manifest",
+      "needs the owner execute bit on Linux and macOS",
+      "takes the Linux program of a package that runs in WSL 2 on Windows, without .exe",
+      "needs the .exe extension on Windows, which has no execute bit"
     ],
     "report": ".cache/addons/logs/packages.json"
   },
@@ -1299,7 +1373,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/services/addons",
         "-ginkgo.json-report=../../../.cache/addons/logs/lifecycle.json"
       ]
@@ -1431,7 +1505,9 @@
       "reads again when the library lists another package for the same version",
       "does not wait behind a read of the same release that is in flight",
       "is a recent check once the owner has refreshed in the background, not unknown",
-      "refuses a candidate that needs a newer feature level, and offers one the host has"
+      "refuses a candidate that needs a newer feature level, and offers one the host has",
+      "installs a manifest that requests the client job operations once they are approved",
+      "gives the reason for people of a refused launch, and nothing for any other failure"
     ],
     "report": ".cache/addons/logs/lifecycle.json"
   },
@@ -1445,7 +1521,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/services/addons/runtime",
         "-ginkgo.json-report=../../../../.cache/addons/logs/runtime.json"
       ],
@@ -1456,9 +1532,9 @@
         "-p",
         "2",
         "-tags",
-        "auth",
-        "./addons/internal/protocol",
-        "-ginkgo.json-report=../../../.cache/addons/logs/runtime-protocol.json"
+        "auth,nosqlite,purego_utp",
+        "./pkg/addons/sdk/protocol",
+        "-ginkgo.json-report=../../../../.cache/addons/logs/runtime-protocol.json"
       ]
     ],
     "report": ".cache/addons/logs/runtime.json",
@@ -1553,7 +1629,38 @@
           "keeps the start live after the call and ends it when an answer reports the job finished",
           "leases nothing for another tool, a refusal, a finished start, a bad answer or an add-on without jobs",
           "refuses a start, without sending it, when every lease place of the add-on is taken",
-          "gives the reserved place back when the start makes no job"
+          "gives the reserved place back when the start makes no job",
+          "is read for a GET route and apply for a route that changes things, and never act",
+          "builds the envelope of a stream with the read scope and refuses a caller that is not a client",
+          "starts an add-on that reports its endpoint, serves it and stops it",
+          "gives the child only the fixed environment and the two handle names",
+          "refuses a child that reports an address that is not loopback",
+          "stops a child that never reports within the ready timeout",
+          "restarts a crashed add-on in the same way",
+          "checks WSL, copies the package into the distribution, runs it there and gives it its data directory there",
+          "empty",
+          "is refused on a host without WSL, with the reason",
+          "starts the add-on through wsl.exe, serves its endpoint on the owner's loopback and stops it gracefully",
+          "gives the add-on in WSL only LANG, TZ and the channel mode",
+          "sends what the add-on prints on its standard output to the log, never into the session",
+          "gives the add-on the data directory the launcher names and tells the host its own path",
+          "says why when the launcher refuses, and starts nothing",
+          "refuses an executable that is not a Linux program",
+          "stops an add-on in WSL that outlives its wsl.exe once the session ends",
+          "loopback",
+          "no newline",
+          "two lines",
+          "other host",
+          "other loopback",
+          "IPv6 loopback",
+          "name",
+          "port zero",
+          "port too large",
+          "leading zero",
+          "sign",
+          "too long",
+          "is not waited for when the owner bound the listener",
+          "writes the startup object through a pipe with a deadline"
         ]
       },
       {
@@ -1596,7 +1703,20 @@
           "answers 429 with the wait in Retry-After and a fixed body",
           "tells the owner which status the service behind the add-on answered, and what to do",
           "sends no status header for a status that is not a refusal of a service",
-          "answers 401 credential_rejected, the answer the host renews the credential for"
+          "answers 401 credential_rejected, the answer the host renews the credential for",
+          "binds 127.0.0.1 and reports the address as one line",
+          "closes the listener when the report cannot be written",
+          "empty",
+          "zero",
+          "negative",
+          "hex",
+          "text",
+          "says its process ID, then hands the add-on the startup object and the end of the stream",
+          "ends the startup channel when the whole session ends",
+          "serves the protocol on the streams the owner opens",
+          "carries the host endpoint over the session through a loopback relay",
+          "refuses a startup stream that carries no startup object",
+          "gives up when the owner opens no startup stream"
         ]
       }
     ]
@@ -1611,7 +1731,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/services/addons/gateway",
         "-ginkgo.json-report=../../../../.cache/addons/logs/gateway.json"
       ],
@@ -1622,7 +1742,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/http/endpoints/addons",
         "-ginkgo.json-report=../../../../.cache/addons/logs/gateway-http.json"
       ],
@@ -1633,7 +1753,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/application",
         "-ginkgo.focus=execution binding owner resolver|workspace operation declarations",
         "-ginkgo.json-report=../../.cache/addons/logs/gateway-owner-binding.json"
@@ -1645,7 +1765,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/services/studio/session",
         "-ginkgo.json-report=../../../../.cache/addons/logs/gateway-session-scope.json"
       ]
@@ -1918,7 +2038,9 @@
           "needs exactly one of data and error in an OAuth reply",
           "writes a decided refusal into the envelope and any other error as a typed error",
           "answers an unknown lifecycle operation with its own type, not as a denial",
-          "carries the jobs tool of an app, which the public apps API leaves out"
+          "carries the jobs tool of an app, which the public apps API leaves out",
+          "carries the provider slots and the model-search source of an app, which the public apps API leaves out",
+          "carries the credential-slot words and the translated resource nouns of an app"
         ]
       },
       {
@@ -2296,7 +2418,15 @@
           "gives chats with different titles the same prompt and names each folder in its note",
           "gives chats with different titles the same prompt and names each folder in its note",
           "keeps the folder in the note when the product's note is at its limit",
-          "keeps the folder in the note when the product's note is at its limit"
+          "keeps the folder in the note when the product's note is at its limit",
+          "mounts the project and its memory read and write, and a pulled project read only",
+          "keeps the names unique against the other mounts",
+          "skips a project folder that is missing and still builds the view",
+          "does not pass a project folder inside the home through the shared-root skip",
+          "describes the project mounts in the prompt",
+          "tells the model not to change the memory of a shared project, also through the shared folder",
+          "describes a mount by the role it was asked for, never by its name",
+          "adds the notes of the view to the prompt"
         ]
       }
     ]
@@ -2311,7 +2441,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/services/addons/policy",
         "-ginkgo.json-report=../../../../.cache/addons/logs/policy.json"
       ]
@@ -2591,7 +2721,17 @@
       "pikvm/type-text: waits for a person in propose mode",
       "pikvm/type-text: runs from a chat turn in Allow all, and the default is not Allow all",
       "keeps no hard approval on any write tool of these add-ons",
-      "refuses every write in off mode"
+      "refuses every write in off mode",
+      "returns a proposal that waits and runs nothing until a person confirms",
+      "still applies a tool without approval always at once",
+      "holds the proposal for a person, with the hold and the expiry on it",
+      "holds an overridable tool too, since only a credential can relax it",
+      "applies once when a person confirms, and a repeat sends nothing",
+      "never runs for a caller that is not a person, with or without the chat mark",
+      "does not let a person's browser confirm through a chat turn mark",
+      "does not let the messaging-chat mark confirm it, even for a credential that stands for a person",
+      "never runs a cancelled or an expired proposal",
+      "keeps today's behavior for a tool without approval always"
     ],
     "report": ".cache/addons/logs/policy.json"
   },
@@ -2605,7 +2745,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/services/addons/policy",
         "-ginkgo.json-report=../../../../.cache/addons/logs/proposals.json"
       ],
@@ -2616,7 +2756,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/http/endpoints/addons",
         "-ginkgo.json-report=../../../../.cache/addons/logs/proposals-http.json"
       ]
@@ -2900,7 +3040,17 @@
           "pikvm/type-text: waits for a person in propose mode",
           "pikvm/type-text: runs from a chat turn in Allow all, and the default is not Allow all",
           "keeps no hard approval on any write tool of these add-ons",
-          "refuses every write in off mode"
+          "refuses every write in off mode",
+          "holds the proposal for a person, with the hold and the expiry on it",
+          "holds an overridable tool too, since only a credential can relax it",
+          "applies once when a person confirms, and a repeat sends nothing",
+          "never runs for a caller that is not a person, with or without the chat mark",
+          "does not let a person's browser confirm through a chat turn mark",
+          "does not let the messaging-chat mark confirm it, even for a credential that stands for a person",
+          "never runs a cancelled or an expired proposal",
+          "keeps today's behavior for a tool without approval always",
+          "returns a proposal that waits and runs nothing until a person confirms",
+          "still applies a tool without approval always at once"
         ]
       },
       {
@@ -3097,7 +3247,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/services/addons/artifacts",
         "-ginkgo.json-report=../../../../.cache/addons/logs/artifacts.json"
       ],
@@ -3108,7 +3258,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/services/addons/gateway",
         "-ginkgo.json-report=../../../../.cache/addons/logs/artifacts-gateway.json"
       ],
@@ -3119,7 +3269,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/http/endpoints/addons",
         "-ginkgo.json-report=../../../../.cache/addons/logs/artifacts-http.json"
       ]
@@ -3434,7 +3584,9 @@
           "needs exactly one of data and error in an OAuth reply",
           "writes a decided refusal into the envelope and any other error as a typed error",
           "answers an unknown lifecycle operation with its own type, not as a denial",
-          "carries the jobs tool of an app, which the public apps API leaves out"
+          "carries the jobs tool of an app, which the public apps API leaves out",
+          "carries the provider slots and the model-search source of an app, which the public apps API leaves out",
+          "carries the credential-slot words and the translated resource nouns of an app"
         ]
       },
       {
@@ -3631,7 +3783,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/services/addons/apps",
         "-ginkgo.json-report=../../../../.cache/addons/logs/apps.json"
       ],
@@ -3642,7 +3794,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/services/addons",
         "-ginkgo.json-report=../../../.cache/addons/logs/apps-lifecycle.json"
       ],
@@ -3653,7 +3805,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/services/addons/runtime",
         "-ginkgo.json-report=../../../../.cache/addons/logs/apps-runtime.json"
       ],
@@ -3664,7 +3816,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/http/endpoints/addons",
         "-ginkgo.json-report=../../../../.cache/addons/logs/apps-http.json"
       ]
@@ -3836,7 +3988,9 @@
           "reads again when the library lists another package for the same version",
           "does not wait behind a read of the same release that is in flight",
           "is a recent check once the owner has refreshed in the background, not unknown",
-          "refuses a candidate that needs a newer feature level, and offers one the host has"
+          "refuses a candidate that needs a newer feature level, and offers one the host has",
+          "installs a manifest that requests the client job operations once they are approved",
+          "gives the reason for people of a refused launch, and nothing for any other failure"
         ]
       },
       {
@@ -3929,7 +4083,38 @@
           "keeps the start live after the call and ends it when an answer reports the job finished",
           "leases nothing for another tool, a refusal, a finished start, a bad answer or an add-on without jobs",
           "refuses a start, without sending it, when every lease place of the add-on is taken",
-          "gives the reserved place back when the start makes no job"
+          "gives the reserved place back when the start makes no job",
+          "is read for a GET route and apply for a route that changes things, and never act",
+          "builds the envelope of a stream with the read scope and refuses a caller that is not a client",
+          "checks WSL, copies the package into the distribution, runs it there and gives it its data directory there",
+          "loopback",
+          "no newline",
+          "two lines",
+          "other host",
+          "other loopback",
+          "IPv6 loopback",
+          "name",
+          "port zero",
+          "port too large",
+          "leading zero",
+          "sign",
+          "empty",
+          "too long",
+          "is not waited for when the owner bound the listener",
+          "writes the startup object through a pipe with a deadline",
+          "starts an add-on that reports its endpoint, serves it and stops it",
+          "gives the child only the fixed environment and the two handle names",
+          "refuses a child that reports an address that is not loopback",
+          "stops a child that never reports within the ready timeout",
+          "restarts a crashed add-on in the same way",
+          "starts the add-on through wsl.exe, serves its endpoint on the owner's loopback and stops it gracefully",
+          "gives the add-on in WSL only LANG, TZ and the channel mode",
+          "sends what the add-on prints on its standard output to the log, never into the session",
+          "gives the add-on the data directory the launcher names and tells the host its own path",
+          "says why when the launcher refuses, and starts nothing",
+          "refuses an executable that is not a Linux program",
+          "stops an add-on in WSL that outlives its wsl.exe once the session ends",
+          "is refused on a host without WSL, with the reason"
         ]
       },
       {
@@ -4384,7 +4569,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./addons/tables/internal/store",
         "-ginkgo.json-report=../../../../.cache/addons/logs/tables-databases-store.json"
       ],
@@ -4395,7 +4580,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./tests/addons/tables",
         "-ginkgo.json-report=../../../.cache/addons/logs/tables-databases.json"
       ]
@@ -4543,7 +4728,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./addons/tables/internal/store",
         "-ginkgo.json-report=../../../../.cache/addons/logs/tables-schema-store.json"
       ],
@@ -4554,7 +4739,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./tests/addons/tables",
         "-ginkgo.json-report=../../../.cache/addons/logs/tables-schema.json"
       ]
@@ -4702,7 +4887,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./addons/tables/internal/store",
         "-ginkgo.json-report=../../../../.cache/addons/logs/tables-rows-store.json"
       ],
@@ -4713,7 +4898,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./tests/addons/tables",
         "-ginkgo.json-report=../../../.cache/addons/logs/tables-rows.json"
       ]
@@ -5062,7 +5247,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./tests/addons/tablesadmin",
         "-ginkgo.json-report=../../../.cache/addons/logs/tables-admin.json"
       ]
@@ -5559,6 +5744,8 @@
       "package.sh refuses a guest image that is not by digest",
       "package.sh refuses a sandbox release build without SANDBOX_GUEST_IMAGE",
       "package.sh stamps the sandbox executable with a guest image in a local check",
+      "package.sh signs the macOS sandbox executable with the virtualization entitlement",
+      "package.sh signs no other add-on",
       "go: packages all four document slots with the actual validator and no core fallback",
       "go: proves every source block and local reference without Git or network",
       "go: writes the zip of a verified layout with a digest manifest and a sha256 file",
@@ -5572,6 +5759,7 @@
       "go: audits actual host calls and strict package contract for mail",
       "go: audits actual host calls and strict package contract for office",
       "go: audits actual host calls and strict package contract for pikvm",
+      "go: audits actual host calls and strict package contract for pirateface-search",
       "go: audits actual host calls and strict package contract for ssh",
       "go: audits actual host calls and strict package contract for quantization",
       "go: audits actual host calls and strict package contract for sandbox",
@@ -5595,6 +5783,7 @@
       "go: has consistent package files for jellyfin",
       "go: has consistent package files for mail",
       "go: has consistent package files for pikvm",
+      "go: has consistent package files for pirateface-search",
       "go: has consistent package files for ssh",
       "go: changes the package digest when a translation changes, and the package still verifies",
       "go: refuses to build a package whose translation the host would refuse",
@@ -5820,7 +6009,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./core/services/addons/hostops",
         "-ginkgo.json-report=../../../../.cache/addons/logs/host-admission.json"
       ]
@@ -5979,7 +6168,100 @@
       "does not let a handle be used for two calls",
       "expires a handle that sees no call and removes the partial file",
       "refuses a file the scan hook rejects",
-      "refuses an outbound handle whose content changed size and an offset past the end"
+      "refuses an outbound handle whose content changed size and an offset past the end",
+      "lists the client job operations as supported, so a manifest that requests them is admitted",
+      "lists client.list as supported with a description, so a manifest that requests it is admitted",
+      "lists the client folder operations as supported with descriptions",
+      "keeps a started job's request live after the call, bound to the same chat, until the job ends",
+      "ends a lease at its end time even when nobody reports the job",
+      "cannot lease a request that is not running, of another incarnation, twice or an observation",
+      "bounds the leases of one add-on",
+      "reserves the place of a lease before a start is sent, so a full table refuses the start",
+      "drops the leases of an incarnation that goes away",
+      "allows the checkpoint and the network checks of a job, marks them leased, and nothing else",
+      "tells the egress host that a leased check is unattended",
+      "returns the id and the name of each client, and the add-on and owner of the call",
+      "answers an empty list as an array",
+      "never takes the add-on, the owner or a client from the arguments",
+      "is refused to a call that a client made",
+      "fails closed without the grant, without the feature, for a non-administrator and without a live call",
+      "is refused for an add-on or an owner the host does not know",
+      "is the registry of a host that does not wire it",
+      "takes the client and the owner from the host's record of the call, never from the arguments",
+      "refuses an argument that names a client or a user, and unknown arguments",
+      "refuses the client operations to a call that no client made",
+      "refuses every other operation to a call that a client made",
+      "opens a call that a client made to the job and folder operations by exact name, not by prefix",
+      "is a host service for any add-on the owner grants it to, by grant and not by add-on id",
+      "needs the jobs feature of the owner and a live call",
+      "limits the parameters",
+      "opens exactly the three folder names beside the job names",
+      "refuses the folder operations to a call that no client made",
+      "refuses the folder operations without the owner's grant of the prefix",
+      "names the files and sizes of a granted folder, and only the text formats",
+      "lists a folder below a granted folder",
+      "lists the granted folders for an empty path",
+      "refuses a folder that is not granted, a parent of a granted folder and a sibling",
+      "returns one file of a read folder and of the write folder",
+      "never returns a file outside the grant",
+      "parent",
+      "parent",
+      "parent first",
+      "dot",
+      "dot",
+      "absolute",
+      "absolute",
+      "backslash",
+      "backslash",
+      "backslash parent",
+      "NUL",
+      "NUL",
+      "empty segment",
+      "trailing slash",
+      "control character",
+      "another user's folder",
+      "a file name that is only the folder",
+      "empty",
+      "refuses a wrong extension and a file over the read limit",
+      "refuses a binary file with a text name and a missing file",
+      "writes a file inside the write folder as the owner, and audits client, path, size and digest",
+      "overwrites a file, creates sub folders and creates the write folder when it is missing",
+      "keeps only the newest versions of a file a client writes in a loop",
+      "does not prune the history of the owner's own writes",
+      "refuses a write to a read-only folder, to the parent and to a sibling, and changes nothing",
+      "refuses a key that has no write folder",
+      "deep parent",
+      "NUL before the extension",
+      "hidden file",
+      "space in the name",
+      "colon",
+      "too deep",
+      "takes only .md, .txt and .json, and valid text",
+      "limits a file to 256 KiB, inclusive",
+      "refuses a write that would fill the folder, and allows a replacement within it",
+      "has a default folder limit of 50 MiB",
+      "refuses a path that is a folder",
+      "needs the apply scope, which a read-only call does not have",
+      "never takes an owner, a client or an add-on from the arguments",
+      "refuses a case variant and a decomposed (NFD) variant of a granted folder",
+      "stays under the payload limit when the encoder escapes the content",
+      "keeps a file at the default cap whose answer needs no escape",
+      "counts only the entries it shows, and pages with a cursor",
+      "refuses a new file past the node cap, and still allows an overwrite",
+      "does not call a folder with more nodes than the cap 'full'",
+      "has a default cap of 4096 nodes",
+      "is an outage, not a full folder, when the store cannot list",
+      "lets a write that shrinks a file pass when the folder is at its limit",
+      "names the client in the history title",
+      "does not complete for a key that was revoked while it waited",
+      "does not complete when the write folder was changed while it waited",
+      "gives up when its context ends",
+      "gives one generic refusal when the grant source refuses, whatever the reason, and audits each reason",
+      "refuses an empty grant, and a grant that names a bad folder",
+      "is an outage, not a refusal, when the grant store fails",
+      "refuses without the owner's files feature",
+      "reads another owner's files never: the owner is the one of the call",
+      "registers nothing without a files service or a grant source"
     ],
     "report": ".cache/addons/logs/host-admission.json"
   },
@@ -5993,7 +6275,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./tests/addons/mail",
         "-ginkgo.json-report=../../../.cache/addons/logs/mail-addon.json"
       ]
@@ -6017,7 +6299,7 @@
         "-p",
         "2",
         "-tags",
-        "auth",
+        "auth,nosqlite,purego_utp",
         "./tests/addons/oauth",
         "-ginkgo.json-report=../../../.cache/addons/logs/oauth.json"
       ]

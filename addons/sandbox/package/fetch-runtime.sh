@@ -12,6 +12,14 @@ set -eu
 platform=$1
 out=$2
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+# The macOS package carries no runtime file: its guests run in the
+# Virtualization.framework of the system.
+case "$platform" in
+darwin/*) mkdir -p "$out"; exit 0 ;;
+# The Windows package runs the Linux add-on in WSL 2 (execution wsl2 in
+# platforms.yaml): it carries the linux/amd64 runtime files.
+windows/amd64) platform=linux/amd64 ;;
+esac
 read_pin() { python3 -I - "$here/runsc.json" "$platform" "$1" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))

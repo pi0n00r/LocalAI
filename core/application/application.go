@@ -6,6 +6,8 @@ import (
 	"errors"
 	"github.com/mudler/LocalAI/core/services/collections"
 	"github.com/mudler/LocalAI/core/services/messaging"
+	"github.com/mudler/LocalAI/core/services/remotes"
+	"github.com/mudler/LocalAI/pkg/modelsearch"
 	"io"
 	"math/rand/v2"
 	"net/http"
@@ -63,6 +65,7 @@ import (
 	"github.com/mudler/LocalAI/core/services/studio/loops"
 	"github.com/mudler/LocalAI/core/services/studio/mcpconns"
 	"github.com/mudler/LocalAI/core/services/studio/notify"
+	"github.com/mudler/LocalAI/core/services/studio/projects"
 	"github.com/mudler/LocalAI/core/services/studio/provider"
 	"github.com/mudler/LocalAI/core/services/studio/sharedfolders"
 	"github.com/mudler/LocalAI/core/services/studio/store"
@@ -139,6 +142,10 @@ type Application struct {
 	addonsProbe        addonsProbeState
 	modelsProbe        modelsProbeState
 
+	// addonHostDataDir gives the data directory of an add-on that is not
+	// under addonDataRoot (an add-on in WSL 2); nil or "" means the default.
+	addonHostDataDir func(id string) string
+
 	// libraryStore is the library sources file when no add-on owner runs here.
 	libraryStore   *catalog.Sources
 	libraryStoreMu sync.Mutex
@@ -146,6 +153,8 @@ type Application struct {
 	// The per-person add-on settings are built once: the routes and the chats
 	// read the same store.
 	addonUserSettingsOnce sync.Once
+	modelSearchOnce       sync.Once
+	modelSearchHost       *modelsearch.Host
 	addonUserSettings     usersettings.Store
 	addonUserSettingsErr  error
 
@@ -199,6 +208,7 @@ type Application struct {
 	studioLoopsStop       context.CancelFunc
 	studioConnStore       connectors.Store
 	studioMCPStore        mcpconns.Store
+	studioProjectStore    projects.Store
 	studioMCPConns        *mcpconns.Service
 	studioConnectors      *studio.Connectors
 	studioConnectorsHook  atomic.Pointer[studio.Connectors] // the same manager, for the inbox hook that runs on other goroutines
@@ -235,11 +245,15 @@ type Application struct {
 	routerCorpus      *corpus.Manager
 	admissionLimiter  *admission.Limiter
 	failoverManager   *failover.Manager
+	remotes           remotes.Service
 	watchdogMutex     sync.Mutex
 	watchdogStop      chan bool
 	p2pMutex          sync.Mutex
 	p2pCtx            context.Context
 	p2pCancel         context.CancelFunc
+
+	// remotesStop cancels the startup refresh of the remotes and waits for it.
+	remotesStop func()
 
 	// Distributed mode services (nil when not in distributed mode)
 	distributed *DistributedServices
@@ -713,6 +727,9 @@ func (a *Application) IsDistributed() bool {
 func (a *Application) Shutdown() error {
 	var err error
 	a.shutdownOnce.Do(func() {
+		if a.remotesStop != nil {
+			a.remotesStop()
+		}
 		// A chat worker stops taking starts first: a start that arrived now
 		// would meet a closing service. Its running turns end as interrupted.
 		a.stopChatWorker()
@@ -889,6 +906,7 @@ func (a *Application) start() (startErr error) {
 	assistantClient.SingleUser = !a.AuthActive()
 	// The chats start after the assistant, so the shared folder tools
 	// look the service up at each call.
+	assistantClient.ModelSearch = a.ModelSearch
 	assistantClient.SharedFolders = func() *sharedfolders.Service {
 		if svc := a.StudioService(); svc != nil {
 			return svc.SharedFolders()
@@ -1064,7 +1082,7 @@ func (a *Application) startAddons() error {
 		}
 		host := c.Host
 		if host == (contract.HostCompatibility{}) {
-			host = contract.HostCompatibility{Host: 1, API: contract.HostAPIVersion, Protocol: 1, SDK: contract.HostSDKVersion, DataFormat: 1, FeatureLevel: contract.HostFeatureLevel, OS: runtime.GOOS, Arch: runtime.GOARCH}
+			host = contract.HostCompatibility{Host: contract.HostVersion, API: contract.HostAPIVersion, Protocol: contract.HostProtocolVersion, SDK: contract.HostSDKVersion, DataFormat: contract.HostDataFormatVersion, FeatureLevel: contract.HostFeatureLevel, OS: runtime.GOOS, Arch: runtime.GOARCH}
 		}
 		cat = catalog.Catalog{Sources: sources, TargetOS: host.OS, TargetArch: host.Arch}
 		installer = &packages.Installer{Root: filepath.Join(c.Root, "packages"), Catalog: cat, Host: host}
@@ -1136,10 +1154,11 @@ func (a *Application) startAddons() error {
 		a.writeModelsProbe()
 		a.addonHostOps = a.newAddonHostOps(m, limits)
 		a.addonDataRoot = filepath.Join(c.Root, "data")
-		supervisor, err := addonruntime.NewSupervisor(addonruntime.Config{StateRoot: filepath.Join(c.Root, "runtime"), DataRoot: filepath.Join(c.Root, "data"), Limits: limits, ReadyTimeout: limits.ReadTimeout, StableHealth: limits.BackoffMax, HostOps: a.addonHostOps})
+		supervisor, err := addonruntime.NewSupervisor(addonruntime.Config{StateRoot: filepath.Join(c.Root, "runtime"), DataRoot: filepath.Join(c.Root, "data"), Limits: limits, ReadyTimeout: limits.ReadTimeout, StableHealth: limits.BackoffMax, HostOps: a.addonHostOps, WSL: addonWSL(c.WSLDistro)})
 		if err != nil {
 			return err
 		}
+		a.addonHostDataDir = supervisor.HostDataDir
 		if err = m.AttachRuntime(a.applicationConfig.Context, supervisor); err != nil {
 			_ = supervisor.Close(context.Background())
 			return err

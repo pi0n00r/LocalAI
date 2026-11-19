@@ -1,3 +1,5 @@
+//go:build !windows
+
 // SPDX-License-Identifier: MIT
 package tablesexport_test
 
@@ -48,8 +50,8 @@ var _ = BeforeSuite(func() {
 		Expect(err).NotTo(HaveOccurred(), string(b))
 		return target
 	}
-	paths.Fixture = build("FOUNDATION_FIXTURE", "fixture-addon", "./tests/addons/fixture/cmd", false, "auth")
-	paths.Server = build("FOUNDATION_SERVER", "ui-test-server", "./tests/e2e-ui", false, "auth")
+	paths.Fixture = build("FOUNDATION_FIXTURE", "fixture-addon", "./tests/addons/fixture/cmd", false, "auth,nosqlite,purego_utp")
+	paths.Server = build("FOUNDATION_SERVER", "ui-test-server", "./tests/e2e-ui", false, "auth,nosqlite,purego_utp")
 	paths.Mock = os.Getenv("FOUNDATION_MOCK")
 	if paths.Mock == "" {
 		paths.Mock = filepath.Join(root, "tests/e2e/mock-backend/mock-backend")

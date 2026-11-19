@@ -30,12 +30,14 @@ import (
 	"github.com/mudler/LocalAI/core/trace"
 	"github.com/mudler/LocalAI/internal"
 	"github.com/mudler/LocalAI/pkg/downloader"
+	"github.com/mudler/LocalAI/pkg/fsperm"
 	"github.com/mudler/LocalAI/pkg/modelartifacts"
 	"github.com/mudler/LocalAI/pkg/signals"
 	"github.com/mudler/LocalAI/pkg/vram"
 
 	"github.com/mudler/LocalAI/pkg/model"
 	"github.com/mudler/LocalAI/pkg/sanitize"
+	"github.com/mudler/LocalAI/pkg/utils"
 	"github.com/mudler/LocalAI/pkg/xsysinfo"
 	"github.com/mudler/xlog"
 )
@@ -80,6 +82,13 @@ func New(opts ...config.AppOption) (*Application, error) {
 
 	xlog.Info("Starting LocalAI", "threads", options.Threads, "modelsPath", options.SystemState.Model.ModelsPath)
 	xlog.Info("LocalAI version", "version", internal.PrintableVersion())
+	// ffmpeg is an outside program. Say at start that it is missing, so an
+	// audio request does not fail later with no context.
+	if ffmpeg, err := utils.FFmpegPath(); err != nil {
+		xlog.Warn("ffmpeg is not available; audio conversion will fail", "error", err)
+	} else {
+		xlog.Debug("ffmpeg found", "path", ffmpeg)
+	}
 
 	// The account database is opened before the services start: the add-on
 	// owner checks its callers against it in named-user mode, and has no
@@ -394,7 +403,7 @@ func New(opts ...config.AppOption) (*Application, error) {
 			gs := application.galleryService
 			sys := options.SystemState
 			cfgLoaderOpts := options.ToConfigLoaderOptions()
-			modelRevisionLifecycle := modeladmin.NewDistributedModelRevisionLifecycle(distSvc.Registry, distSvc.ModelCleanup)
+			modelRevisionLifecycle := application.ModelRevisionLifecycle()
 			gs.SetModelRevisionLifecycle(modelRevisionLifecycle)
 			// Captured here, used after the model configs are loaded below: the
 			// resync reads the loader, which is still empty at this point.
@@ -606,6 +615,11 @@ func New(opts ...config.AppOption) (*Application, error) {
 		}
 	}
 
+	// Remotes: the model configs are loaded and the distributed
+	// services exist, so the service can write entries and resolve keys. The
+	// refresh runs in the background and never delays startup.
+	application.startRemotes(options.Context)
+
 	// Start the failover scheduler: it syncs chains from config, runs
 	// liveness/recovery probes and dwell-based fail-back. Run is the only
 	// caller of Sync in production so onWarm callbacks stay ordered.
@@ -740,7 +754,7 @@ func loadOrGenerateHMACSecret(path string) (string, error) {
 	}
 	secret := hex.EncodeToString(b)
 
-	if err := os.WriteFile(path, []byte(secret), 0o600); err != nil {
+	if err := fsperm.WriteFile(path, []byte(secret), 0o600); err != nil {
 		return "", fmt.Errorf("failed to persist HMAC secret: %w", err)
 	}
 
@@ -843,7 +857,18 @@ func ensureAuthDBDirs(options *config.ApplicationConfig) error {
 func workspaceStartupCleanup(ctx context.Context, options *config.ApplicationConfig) (context.Context, func(*Application)) {
 	postgres := options.Auth.Enabled && (strings.HasPrefix(options.Auth.DatabaseURL, "postgres://") || strings.HasPrefix(options.Auth.DatabaseURL, "postgresql://"))
 	if options.Distributed.StorageURL == "" && !postgres {
-		return ctx, func(*Application) {}
+		// A failed start leaves no server to shut down, but the workspace index
+		// keeps its log file open. Windows cannot remove an open file, so it
+		// is released here rather than at process exit.
+		return ctx, func(a *Application) {
+			if a.studioTextIndexStop != nil {
+				a.studioTextIndexStop()
+			}
+			if a.studioFilesIndex != nil {
+				_ = a.studioFilesIndex.Close()
+				a.studioFilesIndex = nil
+			}
+		}
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	return ctx, func(a *Application) {

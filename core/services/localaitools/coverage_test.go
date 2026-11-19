@@ -27,6 +27,8 @@ import (
 var toolToHTTPRoute = map[string]string{
 	// Read-only tools.
 	ToolGallerySearch:             "GET /models/available",
+	ToolSearchModels:              "GET /api/models/search",
+	ToolInspectRemoteModel:        "GET /api/models/remote/files", // and GET /api/models/remote/estimate when estimate is set
 	ToolListInstalledModels:       "GET /api/models/capabilities",
 	ToolListGalleries:             "GET /models/galleries",
 	ToolGetJobStatus:              "GET /models/jobs/:uuid",
@@ -114,6 +116,18 @@ func init() {
 // must not be wrapped by a tool too (the spec below checks it); to add a tool
 // for one, move it to toolToHTTPRoute.
 var adminRoutesWithoutTool = map[string]string{
+	// Remotes hold the address and API key of another server. The
+	// key is write-only and credential handling for a remote does
+	// not belong in the always-sent assistant tool budget: a person manages
+	// them on the Remotes page or over REST.
+	"POST /api/remotes/test":        "credential handling for a remote does not belong in the always-sent assistant tool budget",
+	"POST /api/remotes":             "credential handling for a remote does not belong in the always-sent assistant tool budget",
+	"GET /api/remotes":              "credential handling for a remote does not belong in the always-sent assistant tool budget",
+	"GET /api/remotes/:id":          "credential handling for a remote does not belong in the always-sent assistant tool budget",
+	"PATCH /api/remotes/:id":        "credential handling for a remote does not belong in the always-sent assistant tool budget",
+	"DELETE /api/remotes/:id":       "credential handling for a remote does not belong in the always-sent assistant tool budget",
+	"POST /api/remotes/:id/refresh": "credential handling for a remote does not belong in the always-sent assistant tool budget",
+	"POST /api/remotes/:id/adopt":   "credential handling for a remote does not belong in the always-sent assistant tool budget",
 	// The administrator's oversight of other users' saved agents, triggers
 	// and connectors. Each acts on another person's private automation
 	// (disable or delete it). It stays a deliberate click on the
@@ -134,6 +148,11 @@ var adminRoutesWithoutTool = map[string]string{
 	// add-on's settings form. See connector_oauth_unmapped_test.go.
 	"GET /api/chats/admin/oauth-clients/:addonId": "shows the client and the approval of an add-on's login: read on the add-on's settings form",
 	"PUT /api/chats/admin/oauth-clients/:addonId": "takes a client secret and approves an add-on's login: a secret must not pass through a chat",
+	// Which model sources a person searches is a personal choice made in the
+	// search panel. The search tool already uses that choice, so a model never
+	// needs to read or change it.
+	"GET /api/models/search/sources": "the sources and the enabled set of the person: read in the search panel; search_models uses the enabled set",
+	"PUT /api/models/search/sources": "the enabled set is a personal choice made in the search panel, not something a model changes",
 	// A diagnostic button of Settings > Tools, not a setting to manage.
 	"POST /api/chats/admin/web/test": "a diagnostic button: it runs one search and changes nothing",
 	// Settings of the chats that change what commands may do on this machine
@@ -158,6 +177,7 @@ var adminRoutesWithoutTool = map[string]string{
 	// to change them, and the first one is a limit a model must not raise
 	// for itself. A person sets them in Settings.
 	"POST /api/settings (chats_max_iterations)":       "the step limit of every chat turn: a model must not raise its own limit; set in Settings > Tools",
+	"POST /api/settings (chats_loop_*)":               "the limits of the loops and waits of every chat (interval, runs, counts, daily runs and daily script checks): a model must not raise the limits of its own loops; set in Settings > Tools",
 	"POST /api/settings (chats_work_folder)":          "where every chat keeps its helper files: set in Settings > Tools",
 	"POST /api/settings (chats_index_files)":          "reads the text of every user's documents into the server's store: a person's choice in Settings > Tools",
 	"POST /api/settings (chats_index_max_text_bytes)": "how much text the index keeps per document, which sizes the database: set in Settings > Tools",
